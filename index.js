@@ -5,86 +5,57 @@ const path = require('path');
 const tmp = require('tmp');
 const puppeteer = require('puppeteer');
 
-function HtmlWebpackPDFPlugin(options) {
-    options = options || {};
-    this.outputPath = options.outputPath;
-}
-
-HtmlWebpackPDFPlugin.prototype.apply = function (compiler) {
-    const self = this;
-
-    compiler.hooks.compilation.tap('HtmlWebpackPDF', function (compilation) {
-        if (compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration) {
-            compilation.hooks.htmlWebpackPluginAfterEmit.tapAsync('HtmlWebpackPDF', function (htmlPluginData, callback) {
-                self.writePDFToDisk(compilation, htmlPluginData.plugin.options, htmlPluginData.outputName, callback);
-            });
-        } else {
-            const HtmlWebpackPlugin = require('html-webpack-plugin');
-            const hooks = HtmlWebpackPlugin.getHooks(compilation);
-
-            hooks.afterEmit.tapAsync('HtmlWebpackPDF', function (htmlPluginData, callback) {
-                self.writePDFToDisk(compilation, htmlPluginData.plugin.options, htmlPluginData.outputName, callback);
-            });
-        }
-    });
-};
-
-/**
- * Writes an asset to disk as PDF
- */
-HtmlWebpackPDFPlugin.prototype.writePDFToDisk = function (compilation, htmlWebpackPluginOptions, webpackHtmlFilename, callback) {
-    // Skip if the plugin configuration didn't set `alwaysWriteToDisk` to true
-    if (!htmlWebpackPluginOptions.writePDF) {
-        return callback(null);
+class HtmlWebpackPDFPlugin {
+    constructor(options) {
+        options = options || {};
+        this.outputPath = options.outputPath;
     }
-    // Prepare the folder
-    const htmlPath = path.resolve(this.outputPath || compilation.compiler.outputPath, webpackHtmlFilename);
-    const htmlName = path.parse(htmlPath).name;
-    const outputDirectory = path.dirname(htmlPath);
-    const pdfPath = path.join(outputDirectory, htmlName + '.pdf');
 
-    mkdirp(outputDirectory, function (err) {
-        if (err) {
-            return callback(err);
+    apply(compiler) {
+        const self = this;
+
+        compiler.hooks.compilation.tap('HtmlWebpackPDF', function (compilation) {
+            compilation.hooks.htmlWebpackPluginAfterEmit.tapAsync('HtmlWebpackPDF', function (htmlPluginData, callback) {
+                self.writePDFToDisk(compilation, htmlPluginData.plugin.options, htmlPluginData.outputName)
+                    .then(() => {
+                        callback(null)
+                    });
+            });
+        });
+    };
+
+    async writePDFToDisk(compilation, htmlWebpackPluginOptions, webpackHtmlFilename) {
+        // Skip if the plugin configuration didn't set `writePDF` to true
+        if (!htmlWebpackPluginOptions.writePDF) {
+            return callback(null);
         }
 
-        tmp.file(
-            {
-                dir: outputDirectory,
-                postfix: '.html'
-            },
-            function _tempFileCreated(err, tmpFilePath, _, cleanupCallback) {
-                if (err) throw err;
+        // Prepare the folder
+        const htmlPath = path.resolve(this.outputPath || compilation.compiler.outputPath, webpackHtmlFilename);
+        const htmlName = path.parse(htmlPath).name;
+        const outputDirectory = path.dirname(htmlPath);
+        const pdfPath = path.join(outputDirectory, htmlName + '.pdf');
 
-                // Write to disk
-                fs.writeFile(tmpFilePath, compilation.assets[webpackHtmlFilename].source(), function (err) {
-                    if (err) {
-                        return callback(err);
-                    }
+        mkdirp.sync(outputDirectory);
 
-                    puppeteer.launch()
-                        .then((browser) => {
-                            browser.newPage().then(
-                                (page) => {
-                                    page.goto(
-                                        'file://' + tmpFilePath, {waitUntil: 'networkidle0'}
-                                    ).then(() => {
-                                        debugger;
-                                        page.pdf({
-                                            path: pdfPath,
-                                            ...htmlWebpackPluginOptions.writePDF
-                                        }).then(() => {
-                                            browser.close();
-                                            cleanupCallback();
-                                            callback(null);
-                                        })
-                                    })
-                                }
-                            )
-                        })
-                });
-            });
-    });
-};
+        const tmpFile = tmp.fileSync({
+            dir: outputDirectory,
+            postfix: '.html'
+        });
+
+        fs.writeFileSync(tmpFile.name, compilation.assets[webpackHtmlFilename].source());
+
+        const browser = await puppeteer.launch();
+        const page = await browser.newPage();
+        await page.goto('file://' + tmpFile.name, {waitUntil: 'networkidle0'});
+        await page.pdf({
+            path: pdfPath,
+            ...htmlWebpackPluginOptions.writePDF
+        });
+        browser.close();
+
+        tmpFile.removeCallback();
+    }
+}
 
 module.exports = HtmlWebpackPDFPlugin;
