@@ -1,0 +1,41 @@
+{
+  "name": "html-webpack-pdf-plugin",
+  "version": "1.0.0",
+  "description": "Output PDFs from the htmlWebpackPlugin",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/t-mart/html-webpack-pdf-plugin.git"
+  },
+  "author": "Tim Martin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/t-mart/html-webpack-pdf-plugin/issues"
+  },
+  "homepage": "https://github.com/t-mart/html-webpack-pdf-plugin#readme",
+  "keywords": [
+    "webpack",
+    "plugin",
+    "html-webpack-plugin",
+    "pdf",
+    "template"
+  ],
+  "devDependencies": {
+    "@types/webpack": "^4.4.16",
+    "html-webpack-plugin": "^3.2.0",
+    "webpack": "^4.20.2"
+  },
+  "peerDependencies": {
+    "html-webpack-plugin": "^3.0.0",
+    "webpack": "^4.0.0"
+  },
+  "dependencies": {
+    "mkdirp": "^0.5.1",
+    "tmp": "0.0.33",
+    "puppeteer": "^1.11.0"
+  }
+}
