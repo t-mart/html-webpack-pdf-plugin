@@ -1,0 +1,17 @@
+~*
+.svn
+desktop.ini
+Thumbs.db
+.DS_Store
+__MACOSX/
+tags
+!tags/
+.*.sw[a-z]
+*.un~
+Session.vim
+.netrwhist
+.ve
+.idea
+*.iml
+.python-version
+node_modules
